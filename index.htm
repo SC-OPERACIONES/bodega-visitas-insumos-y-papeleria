@@ -229,8 +229,17 @@
             <option>Shopping Market</option>
             <option>Compra</option>
             <option>Operaciones</option>
+            <option>Alquileres</option>
             <option>Farmacia Soldemi</option>
             <option>Graphic Center</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="areaRecibido">Área de recibido</label>
+          <select id="areaRecibido" required>
+            <option value="">Seleccione…</option>
+            <option>Bodega</option>
+            <option>Recepción</option>
           </select>
         </div>
         <div class="field">
@@ -255,7 +264,7 @@
 
   <section class="card">
     <h2>📋 Registros realizados</h2>
-    <p style="font-size:.85rem;color:var(--text-muted);margin:0 0 14px;">Aquí puedes editar un registro ya guardado: fecha, proveedor, compañía, descripción, observaciones y monto.</p>
+    <p style="font-size:.85rem;color:var(--text-muted);margin:0 0 14px;">Aquí puedes editar un registro ya guardado: fecha, proveedor, compañía, área de recibido, descripción, observaciones y monto.</p>
     <div style="overflow-x:auto;">
       <table>
         <thead>
@@ -263,6 +272,7 @@
             <th>Fecha</th>
             <th>Proveedor</th>
             <th>Compañía</th>
+            <th>Área de recibido</th>
             <th>Descripción</th>
             <th>Observaciones</th>
             <th>Monto</th>
@@ -321,6 +331,7 @@
           <option>Shopping Market</option>
           <option>Compra</option>
           <option>Operaciones</option>
+          <option>Alquileres</option>
           <option>Farmacia Soldemi</option>
           <option>Graphic Center</option>
         </select>
@@ -349,7 +360,7 @@
             <th>Proveedor</th>
             <th>Compañía</th>
             <th>Descripción</th>
-            <th>Recibido por</th>
+            <th>Área de recibido</th>
             <th>Observaciones</th>
             <th>Monto</th>
             <th>Acciones</th>
@@ -380,9 +391,8 @@ let registros = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 let editandoId = null;
 let filtroFechaActiva = null;
 
-// "Recibido por" no es editable desde el formulario (ni público ni autorizado).
-// Cambia este valor fijo aquí si en algún momento necesitas otro texto por defecto.
-const RECIBIDO_POR_FIJO = "Bodega";
+// El campo interno "recibidoPor" se conserva por compatibilidad con Google Sheets,
+// pero ahora representa el "Área de recibido" seleccionada por el usuario.
 
 /* ============ Acceso Autorizados (PIN) ============ */
 const PIN_AUTORIZADOS = "DPTOPS26";
@@ -430,20 +440,12 @@ document.getElementById('fecha').value = hoyISO();
 document.getElementById('form').addEventListener('submit', function(e){
   e.preventDefault();
 
-  // "Recibido por" nunca se toma de un input: si es un registro nuevo se usa
-  // el valor fijo; si es una edición, se conserva el valor original guardado.
-  let recibidoPorFinal = RECIBIDO_POR_FIJO;
-  if(editandoId){
-    const original = registros.find(r=>r.id===editandoId);
-    if(original) recibidoPorFinal = original.recibidoPor;
-  }
-
   const registro = {
     id: editandoId || uuid(),
     fecha: document.getElementById('fecha').value,
     proveedor: document.getElementById('proveedor').value.trim(),
     compania: document.getElementById('compania').value,
-    recibidoPor: recibidoPorFinal,
+    recibidoPor: document.getElementById('areaRecibido').value,
     descripcion: document.getElementById('descripcion').value.trim(),
     observaciones: document.getElementById('observaciones').value.trim(),
     monto: parseFloat(document.getElementById('monto').value) || 0,
@@ -482,6 +484,7 @@ function editarRegistro(id){
   document.getElementById('fecha').value = r.fecha;
   document.getElementById('proveedor').value = r.proveedor;
   document.getElementById('compania').value = r.compania;
+  document.getElementById('areaRecibido').value = r.recibidoPor || 'Bodega';
   document.getElementById('descripcion').value = r.descripcion;
   document.getElementById('observaciones').value = r.observaciones;
   document.getElementById('monto').value = r.monto || '';
@@ -557,6 +560,7 @@ function renderTablaPublica(){
         <td>${formatFecha(r.fecha)}</td>
         <td>${escapeHtml(r.proveedor)}</td>
         <td><span class="badge">${escapeHtml(r.compania)}</span></td>
+        <td>${escapeHtml(r.recibidoPor || 'Bodega')}</td>
         <td>${escapeHtml(r.descripcion) || '—'}</td>
         <td>${escapeHtml(r.observaciones) || '—'}</td>
         <td class="monto">$${(r.monto||0).toFixed(2)}</td>
@@ -589,7 +593,7 @@ function renderTabla(){
         <td>${escapeHtml(r.proveedor)}</td>
         <td><span class="badge">${escapeHtml(r.compania)}</span></td>
         <td>${escapeHtml(r.descripcion) || '—'}</td>
-        <td>${escapeHtml(r.recibidoPor)}</td>
+        <td>${escapeHtml(r.recibidoPor || 'Bodega')}</td>
         <td>${escapeHtml(r.observaciones) || '—'}</td>
         <td class="monto">$${(r.monto||0).toFixed(2)}</td>
         <td>
@@ -668,6 +672,7 @@ function cargarDesdeSheet(){
       if(json && json.success && Array.isArray(json.data)){
         registros = json.data.map(r => ({
           ...r,
+          recibidoPor: r.recibidoPor || 'Bodega',
           monto: parseFloat(r.monto) || 0
         }));
         guardarLocal();
